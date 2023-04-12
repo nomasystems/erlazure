@@ -40,7 +40,6 @@
 
 parse_queue_messages_list(Response) when is_binary(Response) ->
           parse_queue_messages_list(erlang:binary_to_list(Response));
-
 parse_queue_messages_list(Response) when is_list(Response) ->
           {ParseResult, _} = xmerl_scan:string(Response),
           case ParseResult#xmlElement.name of
@@ -48,7 +47,9 @@ parse_queue_messages_list(Response) when is_list(Response) ->
               Nodes = erlazure_xml:filter_elements(ParseResult#xmlElement.content),
               {ok, lists:map(fun parse_queue_message/1, Nodes)};
             _ -> {error, bad_response}
-          end.
+          end;
+parse_queue_messages_list(_Response) ->
+  {error, azure_badarg}.
 
 parse_queue_message(Elem=#xmlElement{}) ->
           Nodes = erlazure_xml:filter_elements(Elem#xmlElement.content),
@@ -105,7 +106,11 @@ parse_queue_acl_response(Response) when is_list(Response) ->
               end;
             _ ->
               {error, bad_response}
-          end.
+          end;
+parse_queue_acl_response(_Response) ->
+  {error, azure_badarg}.
+
+
 
 parse_access_policy(XmlElement=#xmlElement{}) ->
           Nodes = erlazure_xml:filter_elements(XmlElement#xmlElement.content),
