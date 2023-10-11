@@ -63,7 +63,7 @@ parse_queue_mesage(Elem=#xmlElement{}, Message=#queue_message{}) ->
             'PopReceipt' -> Message#queue_message { pop_receipt = erlazure_xml:parse_str(Elem) };
             'TimeNextVisible' -> Message#queue_message { next_visible = erlazure_xml:parse_str(Elem) };
             'DequeueCount' -> Message#queue_message { dequeue_count = erlazure_xml:parse_int(Elem) };
-            'MessageText' -> Message#queue_message { text = base64:decode_to_string(erlazure_xml:parse_str(Elem)) }
+            'MessageText' -> Message#queue_message { text = erlazure_xml:parse_str(Elem) }
           end.
 
 parse_queue_list(Response) ->
