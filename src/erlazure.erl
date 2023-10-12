@@ -145,7 +145,7 @@ set_queue_acl(Pid, Queue, SignedId = #signed_id{}, Options, Timeout) when
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
         {ok, #st{service = ServiceContext} = St} ->
-            ReqOptions = #{ 
+            ReqOptions = #{
                 method => ?HTTP_METHOD_PUT,
                 path => string:to_lower(Queue),
                 body => erlazure_queue:get_request_body(set_queue_acl, SignedId),
@@ -173,7 +173,7 @@ get_queue_acl(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Ti
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
         {ok, #st{service = ServiceContext} = St} ->
-            ReqOptions = #{ 
+            ReqOptions = #{
                 path => string:to_lower(Queue),
                 params => [{comp, acl}] ++ Options
             },
@@ -366,11 +366,11 @@ update_message(
             ReqOptions = #{
                 method => ?HTTP_METHOD_PUT,
                 path => lists:concat([
-                                      string:to_lower(Queue), "/messages/", UpdatedMessage#queue_message.id
-                                     ]),
+                    string:to_lower(Queue), "/messages/", UpdatedMessage#queue_message.id
+                ]),
                 body => erlazure_queue:get_request_body(
-                          update_message, UpdatedMessage#queue_message.text
-                         ),
+                    update_message, UpdatedMessage#queue_message.text
+                ),
                 params => Params ++ Options
             },
             {Code, Body} = erlazure_http:request(
@@ -393,7 +393,11 @@ list_containers(Pid, Options, Timeout) when is_list(Options); is_integer(Timeout
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
         {ok, #st{service = ServiceContext} = St} ->
             ReqOptions = #{params => [{comp, list}] ++ Options},
-            case erlazure_http:request(St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions) of
+            case
+                erlazure_http:request(
+                    St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
+                )
+            of
                 {?http_ok, Body} ->
                     case erlazure_blob:parse_container_list(Body) of
                         {ok, Containers} ->
@@ -519,7 +523,11 @@ list_blobs(Pid, Container, Options, Timeout) when is_list(Options); is_integer(T
         {ok, #st{service = ServiceContext} = St} ->
             Params = [{comp, list}, {res_type, container}],
             ReqOptions = #{path => Container, params => Params ++ Options},
-            case erlazure_http:request(St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions) of
+            case
+                erlazure_http:request(
+                    St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
+                )
+            of
                 {?http_ok, Body} ->
                     case erlazure_blob:parse_blob_list(Body) of
                         {ok, Blobs} ->
@@ -642,7 +650,7 @@ put_block(Pid, Container, Blob, BlockId, BlockContent, Options, Timeout) when
                 {comp, block},
                 {blob_block_id, base64:encode_to_string(BlockId)}
             ],
-            ReqOptions = #{ 
+            ReqOptions = #{
                 method => ?HTTP_METHOD_PUT,
                 path => lists:concat([Container, "/", Blob]),
                 body => BlockContent,
@@ -692,7 +700,11 @@ get_block_list(Pid, Container, Blob, Options, Timeout) when is_list(Options); is
                 path => lists:concat([Container, "/", Blob]),
                 params => [{comp, "blocklist"}] ++ Options
             },
-            case erlazure_http:request(St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions) of
+            case
+                erlazure_http:request(
+                    St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
+                )
+            of
                 {?http_ok, Body} ->
                     case erlazure_blob:parse_block_list(Body) of
                         {ok, BlockList} ->
@@ -810,7 +822,7 @@ delete_table(Pid, TableName) when is_list(TableName) ->
     case gen_server:call(Pid, {get_state, Service, []}, ?gen_server_call_default_timeout) of
         {ok, #st{service = ServiceContext} = St} ->
             ReqOptions = #{
-                path => "Tables('"++TableName++"')",
+                path => "Tables('" ++ TableName ++ "')",
                 method => ?HTTP_METHOD_DELETE
             },
             {Code, Body} = erlazure_http:request(

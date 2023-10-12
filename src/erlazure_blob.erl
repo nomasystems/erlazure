@@ -40,8 +40,8 @@
     parse_blob_list/1,
     get_request_body/1,
     parse_block_list/1,
-    get_request_param_specs/0,
-    parse_blob_response/1
+    get_request_param_specs/0
+    %parse_blob_response/1
 ]).
 
 -spec parse_container_list(string()) -> {error, bad_response} | {[blob_container()], list()}.

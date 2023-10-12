@@ -85,17 +85,20 @@ request(Pid, Service, ServiceContext = #service_context{}, ParamSpecs, Options) 
                 Headers1
             )},
 
-        {Resource, FinalHeaders, Body} = create_request(ReqContext, [AuthHeader | Headers1]),
-        Response = ncowboy:request(
-                     Pid,
-                     ReqContext#req_context.method,
-                     Resource,
-                     FinalHeaders,
-                     Body),
+    {Resource, FinalHeaders, Body} = create_request(ReqContext, [AuthHeader | Headers1]),
+    Response = ncowboy:request(
+        Pid,
+        ReqContext#req_context.method,
+        Resource,
+        FinalHeaders,
+        Body
+    ),
 
     case Response of
         {ok, Code, _Headers, ResponseBody} when
-            Code >= ?STATUS_CODE_OK, Code =< ?STATUS_CODE_PARTIAL_CONTENT -> % 200 - 206
+            % 200 - 206
+            Code >= ?STATUS_CODE_OK, Code =< ?STATUS_CODE_PARTIAL_CONTENT
+        ->
             {Code, ResponseBody};
         {ok, _Code, _Headers, ResponseBody} ->
             try get_error_code(ResponseBody) of

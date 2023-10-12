@@ -33,14 +33,8 @@
 -record(parse_enum_acc, {items = [], misc = [], custom = [], spec = #enum_parser_spec{}}).
 
 %% API
--export([parse_metadata/1, parse_list/2, parse_enumeration/2, parse_str/1, parse_int/1]).
--export([get_element_text/2, filter_elements/1, get_text/1]).
-
-get_element_text(ElementName, Elements) when is_list(ElementName), is_list(Elements) ->
-    case lists:keyfind(ElementName, 1, Elements) of
-        {ElementName, _, Value} -> lists:flatten(Value);
-        false -> ""
-    end.
+-export([parse_metadata/1, parse_enumeration/2, parse_str/1, parse_int/1]).
+-export([filter_elements/1]).
 
 parse_metadata(#xmlElement{content = Content}) ->
     Nodes = erlazure_xml:filter_elements(Content),
