@@ -41,6 +41,8 @@
 -define(blob_service_ver, "2014-02-14").
 -define(table_service_ver, "2014-02-14").
 
+-define(content_type, "application/xml").
+
 %% Request common parameters
 -define(req_param_prefix, prefix).
 -define(req_param_marker, marker).
@@ -134,10 +136,9 @@
 -export_type([service_context/0]).
 
 -record(req_context, { method = get :: method(),
-                       address = "" :: string(),
                        path = "" :: string(),
                        parameters = [] :: list(request_param()),
-                       content_type = "application/xml" :: string(),
+                       content_type = ?content_type :: string(),
                        content_length = 0 :: non_neg_integer(),
                        body = "" :: string() | binary(),
                        headers = [] :: list(request_header()) }).
