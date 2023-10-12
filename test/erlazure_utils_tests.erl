@@ -34,15 +34,15 @@
 -include_lib("eunit/include/eunit.hrl").
 
 format_date_only_test() ->
-                Date = {2014, 10, 22},
-                Fmt = erlazure_utils:iso_8601_fmt(Date),
-                ?assertMatch("2014-10-22", Fmt).
+    Date = {2014, 10, 22},
+    Fmt = erlazure_utils:iso_8601_fmt(Date),
+    ?assertMatch("2014-10-22", Fmt).
 
 format_date_time_hhmmss_test() ->
-                DateTime = {{2014, 10, 22}, {22, 15}},
-                Fmt = erlazure_utils:iso_8601_fmt(DateTime),
-                ?assertMatch("2014-10-22T22:15Z", Fmt).
+    DateTime = {{2014, 10, 22}, {22, 15}},
+    Fmt = erlazure_utils:iso_8601_fmt(DateTime),
+    ?assertMatch("2014-10-22T22:15Z", Fmt).
 format_date_time_hhmm_test() ->
-                DateTime = {{2014, 10, 22}, {22, 15, 10}},
-                Fmt = erlazure_utils:iso_8601_fmt(DateTime),
-                ?assertMatch("2014-10-22T22:15:10Z", Fmt).
+    DateTime = {{2014, 10, 22}, {22, 15, 10}},
+    Fmt = erlazure_utils:iso_8601_fmt(DateTime),
+    ?assertMatch("2014-10-22T22:15:10Z", Fmt).
