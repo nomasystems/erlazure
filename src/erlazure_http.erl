@@ -29,7 +29,6 @@
 -author("Dmitry Kataskin").
 
 -include("erlazure.hrl").
--include_lib("ncowboy/include/ncowboy.hrl").
 
 %% API
 -export([
@@ -62,8 +61,8 @@ request(Pid, Service, ServiceContext = #service_context{}, ParamSpecs, Options) 
 
     Headers1 =
         if
-            (ReqContext#req_context.method =:= put orelse
-                ReqContext#req_context.method =:= post) ->
+            (ReqContext#req_context.method =:= ?HTTP_METHOD_PUT orelse
+                ReqContext#req_context.method =:= ?HTTP_METHOD_POST) ->
                 ContentHeaders = [
                     {"Content-Type", ReqContext#req_context.content_type},
                     {"Content-Length", integer_to_list(ReqContext#req_context.content_length)}
@@ -194,7 +193,7 @@ get_headers_string(Service, Headers) ->
     end,
     lists:foldl(FoldFun, "", get_header_names(Service)).
 
--spec sign_string(base64:ascii_string(), string()) -> binary().
+-spec sign_string(base64:base64_string() | base64:base64_binary(), string()) -> binary().
 sign_string(Key, StringToSign) ->
     hmac(base64:decode(Key), StringToSign).
 
@@ -225,21 +224,15 @@ canonicalize_resource(Account, Path, Parameters) ->
     "/" ++ Account ++ "/" ++ Path ++ combine_canonical_param(H, "", "", T).
 
 combine_canonical_param({Param, Value}, Param, Acc, []) ->
-    add_value(Value, Acc);
+    Acc ++ "," ++ Value;
 combine_canonical_param({Param, Value}, _PreviousParam, Acc, []) ->
-    add_param_value(Param, Value, Acc);
+    Acc ++ "\n" ++ string:to_lower(Param) ++ ":" ++ Value;
 combine_canonical_param({Param, Value}, Param, Acc, ParamList) ->
     [H | T] = ParamList,
-    combine_canonical_param(H, Param, add_value(Value, Acc), T);
+    combine_canonical_param(H, Param, Acc ++ "," ++ Value, T);
 combine_canonical_param({Param, Value}, _PreviousParam, Acc, ParamList) ->
     [H | T] = ParamList,
-    combine_canonical_param(H, Param, add_param_value(Param, Value, Acc), T).
-
-add_param_value(Param, Value, Acc) ->
-    Acc ++ "\n" ++ string:to_lower(Param) ++ ":" ++ Value.
-
-add_value(Value, Acc) ->
-    Acc ++ "," ++ Value.
+    combine_canonical_param(H, Param, Acc ++ "\n" ++ string:to_lower(Param) ++ ":" ++ Value, T).
 
 get_header_names(?blob_service) ->
     get_header_names(?queue_service);
@@ -267,9 +260,9 @@ get_header_names(?table_service) ->
 verb_to_str(Method) ->
     binary_to_list(Method).
 
-create_request(ReqContext = #req_context{method = get}, Headers) ->
+create_request(ReqContext = #req_context{method = ?HTTP_METHOD_GET}, Headers) ->
     {construct_url(ReqContext), Headers, <<>>};
-create_request(ReqContext = #req_context{method = delete}, Headers) ->
+create_request(ReqContext = #req_context{method = ?HTTP_METHOD_DELETE}, Headers) ->
     {construct_url(ReqContext), Headers, <<>>};
 create_request(ReqContext = #req_context{}, Headers) ->
     {

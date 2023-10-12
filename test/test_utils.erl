@@ -35,8 +35,7 @@ append_ticks(Name) ->
     Name ++ integer_to_list(get_ticks()).
 
 get_ticks() ->
-    {Mega, Sec, Micro} = now(),
-    Mega * 1000000 * 1000000 + Sec * 1000000 + Micro.
+    erlang:unique_integer([positive, monotonic]).
 
 read_file(FileName) ->
     {ok, Binary} = file:read_file(file_path(FileName)),

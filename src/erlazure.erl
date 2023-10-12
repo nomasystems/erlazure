@@ -33,7 +33,6 @@
 -author("Dmitry Kataskin").
 
 -include("erlazure.hrl").
--include_lib("ncowboy/include/ncowboy.hrl").
 
 -define(json_content_type, "application/json").
 -define(gen_server_call_default_timeout, 30000).
@@ -481,7 +480,7 @@ put_block_blob(Pid, Container, Name, Data, Options, Timeout) when
                 params => [{blob_type, Type}] ++ Options
             },
             {Code, Body} = erlazure_http:request(
-                Service, ServiceContext, St#st.param_specs, ReqOptions
+                St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
             return_response(Code, Body, St, ?http_created, created);
         Error ->
@@ -805,7 +804,7 @@ new_table(Pid, TableName) when is_binary(TableName) ->
                 path => "Tables",
                 method => ?HTTP_METHOD_POST,
                 content_type => ?json_content_type,
-                body => json:encode([{'TableName', TableName}])
+                body => json:encode([{'TableName', TableName}], binary)
             },
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions

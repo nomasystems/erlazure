@@ -51,6 +51,7 @@
 -define(req_param_timeout, timeout).
 -define(req_param_clientrequestid, client_request_id).
 
+-include_lib("ncowboy/include/ncowboy.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 -ifndef(PRINT).
@@ -66,7 +67,8 @@
 -type xmlElement() :: #xmlElement{}.
 -export_type([xmlElement/0]).
 
--type method() :: get | put | post | delete | head.
+%?HTTP_METHOD_HEAD | ?HTTP_METHOD_GET | ?HTTP_METHOD_DELETE | ?HTTP_METHOD_OPTIONS | ?HTTP_METHOD_POST | ?HTTP_METHOD_PUT | ?HTTP_METHOD_TRACE.
+-type method() :: binary().
 -export_type([method/0]).
 
 -type azure_service() :: ?queue_service | ?blob_service | ?table_service.
@@ -152,7 +154,7 @@
 -export_type([service_context/0]).
 
 -record(req_context, {
-    method = get :: method(),
+    method = ?HTTP_METHOD_GET :: method(),
     path = "" :: string(),
     parameters = [] :: list(request_param()),
     content_type = ?content_type :: string(),
