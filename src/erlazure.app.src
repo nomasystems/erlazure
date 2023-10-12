@@ -3,6 +3,6 @@
     {vsn, "0.2"},
     {modules, []},
     {registered, []},
-    {applications, [kernel, stdlib, crypto, inets, ssl]},
+    {applications, [kernel, stdlib, crypto, ssl, gun]},
     {mod, {erlazure_app, []}},
     {env, []}]}.

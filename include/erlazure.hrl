@@ -36,12 +36,10 @@
 -define(blob_service, blob).
 -define(table_service, table).
 -define(queue_service, queue).
--define(file_service, file).
 
 -define(queue_service_ver, "2014-02-14").
 -define(blob_service_ver, "2014-02-14").
 -define(table_service_ver, "2014-02-14").
--define(file_service_ver, "2014-02-14").
 
 %% Request common parameters
 -define(req_param_prefix, prefix).
