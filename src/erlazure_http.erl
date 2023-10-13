@@ -39,34 +39,33 @@ verb_to_str(post) -> "POST";
 verb_to_str(head) -> "HEAD";
 verb_to_str(delete) -> "DELETE".
 
-create_request(ReqContext = #req_context{ method = get }, Headers) ->
-        {construct_url(ReqContext), Headers};
-
-create_request(ReqContext = #req_context{ method = delete }, Headers) ->
-        {construct_url(ReqContext), Headers};
-
+create_request(ReqContext = #req_context{method = get}, Headers) ->
+    {construct_url(ReqContext), Headers};
+create_request(ReqContext = #req_context{method = delete}, Headers) ->
+    {construct_url(ReqContext), Headers};
 create_request(ReqContext = #req_context{}, Headers) ->
-        {construct_url(ReqContext),
-         Headers,
-         ReqContext#req_context.content_type,
-         ReqContext#req_context.body}.
+    {
+        construct_url(ReqContext),
+        Headers,
+        ReqContext#req_context.content_type,
+        ReqContext#req_context.body
+    }.
 
 construct_url(ReqContext = #req_context{}) ->
-        FoldFun = fun({ParamName, ParamValue}, Acc) ->
-          if Acc =:= "" ->
-            lists:concat(["?", ParamName, "=", ParamValue]);
-
+    FoldFun = fun({ParamName, ParamValue}, Acc) ->
+        if
+            Acc =:= "" ->
+                lists:concat(["?", ParamName, "=", ParamValue]);
             true ->
-              lists:concat([Acc, "&", ParamName, "=", ParamValue])
-          end
-        end,
+                lists:concat([Acc, "&", ParamName, "=", ParamValue])
+        end
+    end,
 
-        ReqContext#req_context.address ++
+    ReqContext#req_context.address ++
         ReqContext#req_context.path ++
         lists:foldl(FoldFun, "", ReqContext#req_context.parameters).
 
 get_content_length(Content) when is_list(Content) ->
-        erlang:iolist_size(Content);
-
+    erlang:iolist_size(Content);
 get_content_length(Content) when is_binary(Content) ->
-        byte_size(Content).
+    byte_size(Content).
