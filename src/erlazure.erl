@@ -117,7 +117,7 @@ list_queues(Pid, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_OK, erlazure_queue:parse_queue_list(Body));
+            return_response(Code, Body, ?STATUS_CODE_OK, erlazure_queue:parse_queue_list(Body));
         Error ->
             Error
     end.
@@ -148,7 +148,7 @@ set_queue_acl(Pid, Queue, SignedId = #signed_id{}, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_NO_CONTENT, created);
+            return_response(Code, Body, ?STATUS_CODE_NO_CONTENT, created);
         Error ->
             Error
     end.
@@ -175,7 +175,7 @@ get_queue_acl(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Ti
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
             return_response(
-                Code, Body, St, ?STATUS_CODE_OK, erlazure_queue:parse_queue_acl_response(Body)
+                Code, Body, ?STATUS_CODE_OK, erlazure_queue:parse_queue_acl_response(Body)
             );
         Error ->
             Error
@@ -226,7 +226,7 @@ delete_queue(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Tim
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_NO_CONTENT, deleted);
+            return_response(Code, Body, ?STATUS_CODE_NO_CONTENT, deleted);
         Error ->
             Error
     end.
@@ -248,7 +248,7 @@ put_message(Pid, Queue, Message, Options, Timeout) when is_list(Options); is_int
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
+            return_response(Code, Body, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -269,7 +269,7 @@ get_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Tim
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
             return_response(
-                Code, Body, St, ?STATUS_CODE_OK, erlazure_queue:parse_queue_messages_list(Body)
+                Code, Body, ?STATUS_CODE_OK, erlazure_queue:parse_queue_messages_list(Body)
             );
         Error ->
             Error
@@ -291,7 +291,7 @@ peek_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Ti
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
             return_response(
-                Code, Body, St, ?STATUS_CODE_OK, erlazure_queue:parse_queue_messages_list(Body)
+                Code, Body, ?STATUS_CODE_OK, erlazure_queue:parse_queue_messages_list(Body)
             );
         Error ->
             Error
@@ -315,7 +315,7 @@ delete_message(Pid, Queue, MessageId, PopReceipt, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_NO_CONTENT, deleted);
+            return_response(Code, Body, ?STATUS_CODE_NO_CONTENT, deleted);
         Error ->
             Error
     end.
@@ -336,7 +336,7 @@ clear_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(T
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_NO_CONTENT, deleted);
+            return_response(Code, Body, ?STATUS_CODE_NO_CONTENT, deleted);
         Error ->
             Error
     end.
@@ -370,7 +370,7 @@ update_message(
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_NO_CONTENT, updated);
+            return_response(Code, Body, ?STATUS_CODE_NO_CONTENT, updated);
         Error ->
             Error
     end.
@@ -446,7 +446,7 @@ delete_container(Pid, Name, Options, Timeout) when is_list(Options); is_integer(
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_ACCEPTED, deleted);
+            return_response(Code, Body, ?STATUS_CODE_ACCEPTED, deleted);
         Error ->
             Error
     end.
@@ -477,7 +477,7 @@ put_block_blob(Pid, Container, Name, Data, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
+            return_response(Code, Body, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -502,7 +502,7 @@ put_page_blob(Pid, Container, Name, ContentLength, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
+            return_response(Code, Body, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -579,7 +579,7 @@ snapshot_blob(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
+            return_response(Code, Body, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -602,7 +602,7 @@ copy_blob(Pid, Container, Blob, Source, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, ervice, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_ACCEPTED, created);
+            return_response(Code, Body, ?STATUS_CODE_ACCEPTED, created);
         Error ->
             Error
     end.
@@ -623,7 +623,7 @@ delete_blob(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_in
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_ACCEPTED, deleted);
+            return_response(Code, Body, ?STATUS_CODE_ACCEPTED, deleted);
         Error ->
             Error
     end.
@@ -653,7 +653,7 @@ put_block(Pid, Container, Blob, BlockId, BlockContent, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
+            return_response(Code, Body, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -677,7 +677,7 @@ put_block_list(Pid, Container, Blob, BlockRefs, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
+            return_response(Code, Body, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -739,7 +739,7 @@ acquire_blob_lease(Pid, Container, Blob, ProposedId, Duration, Options, Timeout)
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_CREATED, acquired);
+            return_response(Code, Body, ?STATUS_CODE_CREATED, acquired);
         Error ->
             Error
     end.
@@ -763,7 +763,7 @@ lease_container(Pid, Name, Mode, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_ACCEPTED, deleted);
+            return_response(Code, Body, ?STATUS_CODE_ACCEPTED, deleted);
         Error ->
             Error
     end.
@@ -785,7 +785,7 @@ list_tables(Pid, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
             return_response(
-                Code, Body, St, ?STATUS_CODE_OK, {ok, erlazure_table:parse_table_list(Body)}
+                Code, Body, ?STATUS_CODE_OK, {ok, erlazure_table:parse_table_list(Body)}
             );
         Error ->
             Error
@@ -806,7 +806,7 @@ new_table(Pid, TableName) when is_binary(TableName) ->
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
+            return_response(Code, Body, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -824,7 +824,7 @@ delete_table(Pid, TableName) when is_list(TableName) ->
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?STATUS_CODE_NO_CONTENT, {ok, deleted});
+            return_response(Code, Body, ?STATUS_CODE_NO_CONTENT, {ok, deleted});
         Error ->
             Error
     end.
@@ -934,10 +934,10 @@ get_req_common_param_specs() ->
         #param_spec{id = ?req_param_marker, type = uri, name = "marker"}
     ].
 
-return_response(Code, Body, St, ExpectedResponseCode, SuccessAtom) ->
+return_response(Code, Body, ExpectedResponseCode, SuccessAtom) ->
     case Code of
         ExpectedResponseCode ->
-            {reply, {ok, SuccessAtom}, St};
+            {ok, SuccessAtom};
         _ ->
-            {reply, {error, Body}, St}
+            {error, Body}
     end.
