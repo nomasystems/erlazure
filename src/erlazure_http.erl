@@ -32,19 +32,42 @@
 
 %% API
 -export([
-    host/2,
+    open/2,
     request/5
 ]).
+
+-export([
+    get_signature_string/6,
+    get_shared_key/7,
+    sign_string/2
+]).
+
+
+-define(GUN_OPTS, #{
+    http_opts => #{version => 'HTTP/1.1'},
+    transport => tls,
+    tls_opts => [{verify, verify_none}]
+}).
+
+open(Service, Account) ->
+    Host = host(Service, Account),
+    case gun:open(Host, 443, ?GUN_OPTS) of
+        {ok, ConnPid} ->
+            {ok, _Protocol} = gun:await_up(ConnPid),
+            {ok, ConnPid};
+        Error ->
+            Error
+    end.
 
 host(Service, Account) ->
     lists:concat([Account, ".", erlang:atom_to_list(Service), ".core.windows.net"]).
 
-request(Pid, Service, ServiceContext = #service_context{}, ParamSpecs, Options) ->
+request(ConnPid, Service, ServiceContext = #service_context{}, ParamSpecs, Options) ->
     ReqContext = req_context(Service, ParamSpecs, Options),
     DateHeader =
         if
             (ServiceContext#service_context.service =:= ?table_service) ->
-                {"Date", httpd_util:rfc1123_date()};
+                {"date", httpd_util:rfc1123_date()};
             true ->
                 {"x-ms-date", httpd_util:rfc1123_date()}
         end,
@@ -52,7 +75,7 @@ request(Pid, Service, ServiceContext = #service_context{}, ParamSpecs, Options) 
     Headers = [
         DateHeader,
         {"x-ms-version", ServiceContext#service_context.api_version},
-        {"Host",
+        {"host",
             host(
                 ServiceContext#service_context.service,
                 ServiceContext#service_context.account
@@ -64,8 +87,8 @@ request(Pid, Service, ServiceContext = #service_context{}, ParamSpecs, Options) 
             (ReqContext#req_context.method =:= ?HTTP_METHOD_PUT orelse
                 ReqContext#req_context.method =:= ?HTTP_METHOD_POST) ->
                 ContentHeaders = [
-                    {"Content-Type", ReqContext#req_context.content_type},
-                    {"Content-Length", integer_to_list(ReqContext#req_context.content_length)}
+                    {"content-type", ReqContext#req_context.content_type},
+                    {"content-length", integer_to_list(ReqContext#req_context.content_length)}
                 ],
                 lists:append([Headers, ContentHeaders, ReqContext#req_context.headers]);
             true ->
@@ -73,7 +96,7 @@ request(Pid, Service, ServiceContext = #service_context{}, ParamSpecs, Options) 
         end,
 
     AuthHeader =
-        {"Authorization",
+        {"authorization",
             get_shared_key(
                 ServiceContext#service_context.service,
                 ServiceContext#service_context.account,
@@ -85,14 +108,14 @@ request(Pid, Service, ServiceContext = #service_context{}, ParamSpecs, Options) 
             )},
 
     {Resource, FinalHeaders, Body} = create_request(ReqContext, [AuthHeader | Headers1]),
-    Response = ncowboy:request(
-        Pid,
+    StreamRef = gun:request(
+        ConnPid,
         ReqContext#req_context.method,
         Resource,
         FinalHeaders,
         Body
     ),
-
+    Response = response(ConnPid, StreamRef),
     case Response of
         {ok, Code, _Headers, ResponseBody} when
             % 200 - 206
@@ -107,10 +130,19 @@ request(Pid, Service, ServiceContext = #service_context{}, ParamSpecs, Options) 
             end
     end.
 
+response(ConnPid, StreamRef) ->
+    case gun:await(ConnPid, StreamRef) of
+        {response, fin, Status, Headers} ->
+            {ok, Status, Headers, undefined};
+        {response, nofin, Status, Headers} ->
+            {ok, Body} = gun:await_body(ConnPid, StreamRef),
+            {ok, Status, Headers, Body}
+    end.
+
 req_context(Service, ParamSpecs, Options) ->
     Method = maps:get(method, Options, ?HTTP_METHOD_GET),
-    Path = maps:get(path, Options, ""),
-    Body = maps:get(body, Options, ""),
+    Path = maps:get(path, Options, "/"),
+    Body = maps:get(body, Options, undefined),
     Headers = maps:get(headers, Options, []),
     Params = maps:get(params, Options, []),
     ContentType = maps:get(content_type, Options, ?content_type),
@@ -232,7 +264,9 @@ combine_canonical_param({Param, Value}, Param, Acc, ParamList) ->
     combine_canonical_param(H, Param, Acc ++ "," ++ Value, T);
 combine_canonical_param({Param, Value}, _PreviousParam, Acc, ParamList) ->
     [H | T] = ParamList,
-    combine_canonical_param(H, Param, Acc ++ "\n" ++ string:to_lower(Param) ++ ":" ++ Value, T).
+    combine_canonical_param(
+        H, Param, Acc ++ "\n" ++ string:to_lower(Param) ++ ":" ++ Value, T
+    ).
 
 get_header_names(?blob_service) ->
     get_header_names(?queue_service);
@@ -261,9 +295,9 @@ verb_to_str(Method) ->
     binary_to_list(Method).
 
 create_request(ReqContext = #req_context{method = ?HTTP_METHOD_GET}, Headers) ->
-    {construct_url(ReqContext), Headers, <<>>};
+    {construct_url(ReqContext), Headers, undefined};
 create_request(ReqContext = #req_context{method = ?HTTP_METHOD_DELETE}, Headers) ->
-    {construct_url(ReqContext), Headers, <<>>};
+    {construct_url(ReqContext), Headers, undefined};
 create_request(ReqContext = #req_context{}, Headers) ->
     {
         construct_url(ReqContext),
@@ -280,9 +314,11 @@ construct_url(ReqContext = #req_context{}) ->
                 lists:concat([Acc, "&", ParamName, "=", ParamValue])
         end
     end,
-    ReqContext#req_context.path ++
+    "/"++ReqContext#req_context.path ++
         lists:foldl(FoldFun, "", ReqContext#req_context.parameters).
 
+content_length(undefined) ->
+    0;
 content_length(Content) when is_list(Content) ->
     erlang:iolist_size(Content);
 content_length(Content) when is_binary(Content) ->

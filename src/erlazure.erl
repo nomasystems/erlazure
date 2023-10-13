@@ -84,13 +84,8 @@
     service = undefined,
     service_context = undefined,
     param_specs = [],
-    conn_pid = undefined
-}).
-
--define(GUN_OPTS, #{
-    protocols => {http, #{version => 'HTTP/1.1'}},
-    tls_opts => [{versions, ['tlsv1.2']}, {verify, verify_none}],
-    transport => tls
+    conn_pid = undefined,
+    conn_ref = undefined
 }).
 
 %%====================================================================
@@ -117,12 +112,12 @@ list_queues(Pid, Options) ->
 list_queues(Pid, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{params => [{comp, list}] ++ Options},
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_ok, erlazure_queue:parse_queue_list(Body));
+            return_response(Code, Body, St, ?STATUS_CODE_OK, erlazure_queue:parse_queue_list(Body));
         Error ->
             Error
     end.
@@ -143,7 +138,7 @@ set_queue_acl(Pid, Queue, SignedId = #signed_id{}, Options, Timeout) when
 ->
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 method => ?HTTP_METHOD_PUT,
                 path => string:to_lower(Queue),
@@ -153,7 +148,7 @@ set_queue_acl(Pid, Queue, SignedId = #signed_id{}, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_no_content, created);
+            return_response(Code, Body, St, ?STATUS_CODE_NO_CONTENT, created);
         Error ->
             Error
     end.
@@ -171,7 +166,7 @@ get_queue_acl(Pid, Queue, Options) ->
 get_queue_acl(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 path => string:to_lower(Queue),
                 params => [{comp, acl}] ++ Options
@@ -180,7 +175,7 @@ get_queue_acl(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Ti
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
             return_response(
-                Code, Body, St, ?http_ok, erlazure_queue:parse_queue_acl_response(Body)
+                Code, Body, St, ?STATUS_CODE_OK, erlazure_queue:parse_queue_acl_response(Body)
             );
         Error ->
             Error
@@ -194,7 +189,7 @@ create_queue(Pid, Queue, Options) ->
 create_queue(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 method => ?HTTP_METHOD_PUT,
                 path => string:to_lower(Queue),
@@ -204,9 +199,9 @@ create_queue(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Tim
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
             case Code of
-                ?http_created ->
+                ?STATUS_CODE_CREATED ->
                     {ok, created};
-                ?http_no_content ->
+                ?STATUS_CODE_NO_CONTENT ->
                     {error, already_created};
                 _HttpStatus ->
                     {error, Body}
@@ -222,7 +217,7 @@ delete_queue(Pid, Queue, Options) ->
 delete_queue(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 method => ?HTTP_METHOD_DELETE,
                 path => string:to_lower(Queue),
@@ -231,7 +226,7 @@ delete_queue(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Tim
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_no_content, deleted);
+            return_response(Code, Body, St, ?STATUS_CODE_NO_CONTENT, deleted);
         Error ->
             Error
     end.
@@ -243,7 +238,7 @@ put_message(Pid, Queue, Message, Options) ->
 put_message(Pid, Queue, Message, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 method => ?HTTP_METHOD_POST,
                 path => lists:concat([string:to_lower(Queue), "/messages"]),
@@ -253,7 +248,7 @@ put_message(Pid, Queue, Message, Options, Timeout) when is_list(Options); is_int
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_created, created);
+            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -265,7 +260,7 @@ get_messages(Pid, Queue, Options) ->
 get_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 path => string:to_lower(Queue) ++ "/messages",
                 params => Options
@@ -274,7 +269,7 @@ get_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Tim
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
             return_response(
-                Code, Body, St, ?http_ok, erlazure_queue:parse_queue_messages_list(Body)
+                Code, Body, St, ?STATUS_CODE_OK, erlazure_queue:parse_queue_messages_list(Body)
             );
         Error ->
             Error
@@ -287,7 +282,7 @@ peek_messages(Pid, Queue, Options) ->
 peek_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 path => string:to_lower(Queue) ++ "/messages",
                 params => [{peek_only, true}] ++ Options
@@ -296,7 +291,7 @@ peek_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Ti
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
             return_response(
-                Code, Body, St, ?http_ok, erlazure_queue:parse_queue_messages_list(Body)
+                Code, Body, St, ?STATUS_CODE_OK, erlazure_queue:parse_queue_messages_list(Body)
             );
         Error ->
             Error
@@ -311,7 +306,7 @@ delete_message(Pid, Queue, MessageId, PopReceipt, Options, Timeout) when
 ->
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 method => ?HTTP_METHOD_DELETE,
                 path => lists:concat([string:to_lower(Queue), "/messages/", MessageId]),
@@ -320,7 +315,7 @@ delete_message(Pid, Queue, MessageId, PopReceipt, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_no_content, deleted);
+            return_response(Code, Body, St, ?STATUS_CODE_NO_CONTENT, deleted);
         Error ->
             Error
     end.
@@ -332,7 +327,7 @@ clear_messages(Pid, Queue, Options) ->
 clear_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 method => ?HTTP_METHOD_DELETE,
                 path => string:to_lower(Queue) ++ "/messages",
@@ -341,7 +336,7 @@ clear_messages(Pid, Queue, Options, Timeout) when is_list(Options); is_integer(T
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_no_content, deleted);
+            return_response(Code, Body, St, ?STATUS_CODE_NO_CONTENT, deleted);
         Error ->
             Error
     end.
@@ -357,7 +352,7 @@ update_message(
 ) when is_list(Options); is_integer(Timeout) ->
     Service = ?queue_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             Params = [
                 {pop_receipt, UpdatedMessage#queue_message.pop_receipt},
                 {message_visibility_timeout, integer_to_list(VisibilityTimeout)}
@@ -375,7 +370,7 @@ update_message(
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_no_content, updated);
+            return_response(Code, Body, St, ?STATUS_CODE_NO_CONTENT, updated);
         Error ->
             Error
     end.
@@ -390,15 +385,15 @@ list_containers(Pid, Options) ->
 list_containers(Pid, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{params => [{comp, list}] ++ Options},
             case
                 erlazure_http:request(
                     St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
                 )
             of
-                {?http_ok, Body} ->
-                    case erlazure_blob:parse_container_list(Body) of
+                {?STATUS_CODE_OK, Body} ->
+                    case erlazure_blob:parse_container_list(binary_to_list(Body)) of
                         {ok, Containers} ->
                             {reply, Containers, St};
                         Error ->
@@ -418,7 +413,7 @@ create_container(Pid, Name, Options) ->
 create_container(Pid, Name, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 method => ?HTTP_METHOD_PUT,
                 path => Name,
@@ -428,7 +423,7 @@ create_container(Pid, Name, Options, Timeout) when is_list(Options); is_integer(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
             case Code of
-                ?http_created -> {reply, {ok, created}, St};
+                ?STATUS_CODE_CREATED -> {reply, {ok, created}, St};
                 _ -> {reply, {error, Body}, St}
             end;
         Error ->
@@ -442,7 +437,7 @@ delete_container(Pid, Name, Options) ->
 delete_container(Pid, Name, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 method => ?HTTP_METHOD_DELETE,
                 path => Name,
@@ -451,7 +446,7 @@ delete_container(Pid, Name, Options, Timeout) when is_list(Options); is_integer(
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_accepted, deleted);
+            return_response(Code, Body, St, ?STATUS_CODE_ACCEPTED, deleted);
         Error ->
             Error
     end.
@@ -466,7 +461,7 @@ put_block_blob(Pid, Container, Name, Data, Options, Timeout) when
     Service = ?blob_service,
     Type = block_blob,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ContentType =
                 case proplists:get_value(content_type, Options) of
                     undefined -> "application/octet-stream";
@@ -482,7 +477,7 @@ put_block_blob(Pid, Container, Name, Data, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_created, created);
+            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -497,7 +492,7 @@ put_page_blob(Pid, Container, Name, ContentLength, Options, Timeout) when
     Service = ?blob_service,
     Type = page_blob,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             Params = [{blob_type, Type}, {blob_content_length, ContentLength}],
             ReqOptions = #{
                 method => ?HTTP_METHOD_PUT,
@@ -507,7 +502,7 @@ put_page_blob(Pid, Container, Name, ContentLength, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_created, created);
+            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -519,7 +514,7 @@ list_blobs(Pid, Container, Options) ->
 list_blobs(Pid, Container, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             Params = [{comp, list}, {res_type, container}],
             ReqOptions = #{path => Container, params => Params ++ Options},
             case
@@ -527,7 +522,7 @@ list_blobs(Pid, Container, Options, Timeout) when is_list(Options); is_integer(T
                     St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
                 )
             of
-                {?http_ok, Body} ->
+                {?STATUS_CODE_OK, Body} ->
                     case erlazure_blob:parse_blob_list(Body) of
                         {ok, Blobs} ->
                             {reply, Blobs, St};
@@ -548,7 +543,7 @@ get_blob(Pid, Container, Blob, Options) ->
 get_blob(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 path => lists:concat([Container, "/", Blob]),
                 params => Options
@@ -557,9 +552,9 @@ get_blob(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_integ
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
             case Code of
-                ?http_ok ->
+                ?STATUS_CODE_OK ->
                     {reply, {ok, Body}, St};
-                ?http_partial_content ->
+                ?STATUS_CODE_PARTIAL_CONTENT ->
                     {reply, {ok, Body}, St};
                 _ ->
                     {reply, {error, Body}, St}
@@ -575,7 +570,7 @@ snapshot_blob(Pid, Container, Blob, Options) ->
 snapshot_blob(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 method => ?HTTP_METHOD_PUT,
                 path => lists:concat([Container, "/", Blob]),
@@ -584,7 +579,7 @@ snapshot_blob(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_created, created);
+            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -598,7 +593,7 @@ copy_blob(Pid, Container, Blob, Source, Options, Timeout) when
 ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 method => ?HTTP_METHOD_PUT,
                 path => lists:concat([Container, "/", Blob]),
@@ -607,7 +602,7 @@ copy_blob(Pid, Container, Blob, Source, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, ervice, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_accepted, created);
+            return_response(Code, Body, St, ?STATUS_CODE_ACCEPTED, created);
         Error ->
             Error
     end.
@@ -619,7 +614,7 @@ delete_blob(Pid, Container, Blob, Options) ->
 delete_blob(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 method => ?HTTP_METHOD_DELETE,
                 path => lists:concat([Container, "/", Blob]),
@@ -628,7 +623,7 @@ delete_blob(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_in
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_accepted, deleted);
+            return_response(Code, Body, St, ?STATUS_CODE_ACCEPTED, deleted);
         Error ->
             Error
     end.
@@ -644,7 +639,7 @@ put_block(Pid, Container, Blob, BlockId, BlockContent, Options, Timeout) when
 ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             Params = [
                 {comp, block},
                 {blob_block_id, base64:encode_to_string(BlockId)}
@@ -658,7 +653,7 @@ put_block(Pid, Container, Blob, BlockId, BlockContent, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_created, created);
+            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -672,7 +667,7 @@ put_block_list(Pid, Container, Blob, BlockRefs, Options, Timeout) when
 ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 method => ?HTTP_METHOD_PUT,
                 path => lists:concat([Container, "/", Blob]),
@@ -682,7 +677,7 @@ put_block_list(Pid, Container, Blob, BlockRefs, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_created, created);
+            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -694,7 +689,7 @@ get_block_list(Pid, Container, Blob, Options) ->
 get_block_list(Pid, Container, Blob, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 path => lists:concat([Container, "/", Blob]),
                 params => [{comp, "blocklist"}] ++ Options
@@ -704,7 +699,7 @@ get_block_list(Pid, Container, Blob, Options, Timeout) when is_list(Options); is
                     St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
                 )
             of
-                {?http_ok, Body} ->
+                {?STATUS_CODE_OK, Body} ->
                     case erlazure_blob:parse_block_list(Body) of
                         {ok, BlockList} ->
                             {reply, BlockList, St};
@@ -729,7 +724,7 @@ acquire_blob_lease(Pid, Container, Blob, ProposedId, Duration, Options, Timeout)
 ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             Params = [
                 {lease_action, acquire},
                 {proposed_lease_id, ProposedId},
@@ -744,7 +739,7 @@ acquire_blob_lease(Pid, Container, Blob, ProposedId, Duration, Options, Timeout)
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_created, acquired);
+            return_response(Code, Body, St, ?STATUS_CODE_CREATED, acquired);
         Error ->
             Error
     end.
@@ -758,7 +753,7 @@ lease_container(Pid, Name, Mode, Options, Timeout) when
 ->
     Service = ?blob_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             Params = [{comp, lease}, {res_type, container}, {lease_action, Mode}],
             ReqOptions = #{
                 method => ?HTTP_METHOD_PUT,
@@ -768,7 +763,7 @@ lease_container(Pid, Name, Mode, Options, Timeout) when
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_accepted, deleted);
+            return_response(Code, Body, St, ?STATUS_CODE_ACCEPTED, deleted);
         Error ->
             Error
     end.
@@ -781,7 +776,7 @@ list_tables(Pid) ->
 list_tables(Pid, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
     Service = ?table_service,
     case gen_server:call(Pid, {get_state, Service, Options}, Timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 path => "Tables",
                 params => Options
@@ -789,7 +784,9 @@ list_tables(Pid, Options, Timeout) when is_list(Options); is_integer(Timeout) ->
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_ok, {ok, erlazure_table:parse_table_list(Body)});
+            return_response(
+                Code, Body, St, ?STATUS_CODE_OK, {ok, erlazure_table:parse_table_list(Body)}
+            );
         Error ->
             Error
     end.
@@ -799,17 +796,17 @@ new_table(Pid, TableName) when is_list(TableName) ->
 new_table(Pid, TableName) when is_binary(TableName) ->
     Service = ?table_service,
     case gen_server:call(Pid, {get_state, Service, []}, ?gen_server_call_default_timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 path => "Tables",
                 method => ?HTTP_METHOD_POST,
                 content_type => ?json_content_type,
-                body => json:encode([{'TableName', TableName}], binary)
+                body => njson:encode(#{<<"TableName">> => TableName})
             },
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_created, created);
+            return_response(Code, Body, St, ?STATUS_CODE_CREATED, created);
         Error ->
             Error
     end.
@@ -819,7 +816,7 @@ delete_table(Pid, TableName) when is_binary(TableName) ->
 delete_table(Pid, TableName) when is_list(TableName) ->
     Service = ?table_service,
     case gen_server:call(Pid, {get_state, Service, []}, ?gen_server_call_default_timeout) of
-        {ok, #st{service = ServiceContext} = St} ->
+        {ok, #st{service_context = ServiceContext} = St} ->
             ReqOptions = #{
                 path => "Tables('" ++ TableName ++ "')",
                 method => ?HTTP_METHOD_DELETE
@@ -827,7 +824,7 @@ delete_table(Pid, TableName) when is_list(TableName) ->
             {Code, Body} = erlazure_http:request(
                 St#st.conn_pid, Service, ServiceContext, St#st.param_specs, ReqOptions
             ),
-            return_response(Code, Body, St, ?http_no_content, {ok, deleted});
+            return_response(Code, Body, St, ?STATUS_CODE_NO_CONTENT, {ok, deleted});
         Error ->
             Error
     end.
@@ -839,15 +836,22 @@ init({Account, Key, Service}) when
     Service == ?table_service;
     Service == ?queue_service
 ->
-    St = #st{
-        account = Account,
-        key = Key,
-        param_specs = get_req_param_specs()
-    },
-    ServiceContext = new_service_context(Service, St),
-    Host = erlazure_http:host(Service, Account),
-    {ok, ConnPid} = ncowboy:open(Host, 443, ?GUN_OPTS),
-    {ok, St#st{service = Service, service_context = ServiceContext, conn_pid = ConnPid}}.
+    case erlazure_http:open(Service, Account) of
+        {ok, ConnPid} ->
+            ConnRef = erlang:monitor(process, ConnPid),
+            St = #st{
+                    account = Account,
+                    key = Key,
+                    param_specs = get_req_param_specs(),
+                    service = Service,
+                    conn_pid = ConnPid,
+                    conn_ref = ConnRef
+                   },
+            ServiceContext = new_service_context(Service, St),
+            {ok, St#st{service_context = ServiceContext}};
+        {error, _} = Error ->
+            Error
+    end.
 
 handle_call({get_state, Service, _Options}, _From, St) when Service == St#st.service ->
     {reply, {ok, St}, St};
@@ -857,11 +861,27 @@ handle_call({get_state, _Service, _Options}, _From, St) ->
 handle_cast(_Msg, St) ->
     {noreply, St}.
 
-handle_info(_Msg, St) ->
-    {noreply, St}.
+handle_info(
+    {'DOWN', ConnRef, process, ConnPid, Reason}, #st{conn_pid = ConnPid, conn_ref = ConnRef} = St
+) ->
+    logger:debug("[erlazure] down with reason: ~p", [Reason]),
+    erlang:demonitor(ConnRef),
+    case erlazure_http:open(St#st.service, St#st.account) of
+        {ok, NewConnPid} ->
+            NewConnRef = erlang:monitor(process, NewConnPid),
+            {noreply, St#st{
+                conn_pid = NewConnPid,
+                conn_ref = NewConnRef
+            }};
+        {error, Reason} ->
+            {stop, Reason};
+        Error ->
+            {stop, Error}
+    end.
 
 terminate(_Reason, St) ->
-    ncowboy:close(St#st.conn_pid),
+    erlang:demonitor(St#st.conn_ref),
+    gun:close(St#st.conn_pid),
     ok.
 
 code_change(_OldVer, St, _Extra) ->
