@@ -81,12 +81,12 @@ peek_messages_test_() ->
     {setup, fun start_create/0, fun stop/1, fun peek_messages/1}.
 
 start() ->
-    {ok, Pid} = erlazure:start(?account_name, ?account_key),
+    {ok, Pid} = erlazure:start_link(?account_name, ?account_key),
     UniqueQueueName = get_queue_unique_name(),
     {Pid, UniqueQueueName}.
 
 start_create() ->
-    {ok, Pid} = erlazure:start(?account_name, ?account_key),
+    {ok, Pid} = erlazure:start_link(?account_name, ?account_key),
     UniqueQueueName = get_queue_unique_name(),
     {ok, created} = erlazure:create_queue(Pid, UniqueQueueName),
     {Pid, UniqueQueueName}.

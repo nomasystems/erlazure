@@ -641,7 +641,7 @@ new_table(Pid, TableName) when is_binary(TableName) ->
     ReqOptions = [
         {path, "Tables"},
         {method, post},
-        {body, jsx:encode([{<<"TableName">>, TableName}])}
+        {body, njson:encode(#{<<"TableName">> => TableName})}
     ],
     ReqContext = new_req_context(?table_service, Account, ParamSpecs, ReqOptions),
     ReqContext1 = ReqContext#req_context{content_type = ?json_content_type},
