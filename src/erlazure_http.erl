@@ -55,9 +55,9 @@ construct_url(ReqContext = #req_context{}) ->
     FoldFun = fun({ParamName, ParamValue}, Acc) ->
         if
             Acc =:= "" ->
-                lists:concat(["?", ParamName, "=", ParamValue]);
+                lists:concat(["?", uri_string:quote(ParamName), "=", uri_string:quote(ParamValue)]);
             true ->
-                lists:concat([Acc, "&", ParamName, "=", ParamValue])
+                lists:concat([Acc, "&", uri_string:quote(ParamName), "=", uri_string:quote(ParamValue)])
         end
     end,
 
