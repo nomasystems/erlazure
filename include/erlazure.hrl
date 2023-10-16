@@ -107,7 +107,7 @@
 -type updated_response() :: {ok, updated}.
 -type deleted_response() :: {ok, deleted}.
 -type lease_acquired_response() :: {ok, acquired}.
--type bad_response() :: {error, bad_response}.
+-type bad_response() :: {error, any()}.
 -export_type([
     bad_response/0,
     created_response/0,

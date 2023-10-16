@@ -44,7 +44,10 @@
     parse_blob_response/1
 ]).
 
--spec parse_container_list(string()) -> {error, bad_response} | {[blob_container()], list()}.
+-spec parse_container_list(binary() | string()) ->
+    {error, bad_response} | {[blob_container()], list()}.
+parse_container_list(Response) when is_binary(Response) ->
+    parse_container_list(binary_to_list(Response));
 parse_container_list(Response) ->
     ParserSpec = #enum_parser_spec{
         rootKey = 'Containers',

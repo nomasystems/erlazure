@@ -839,6 +839,8 @@ combine_canonical_param({Param, Value}, _PreviousParam, Acc, ParamList) ->
     [H | T] = ParamList,
     combine_canonical_param(H, Param, add_param_value(Param, Value, Acc), T).
 
+add_param_value(Param, Value, Acc) when is_atom(Param) ->
+    add_param_value(atom_to_list(Param), Value, Acc);
 add_param_value(Param, Value, Acc) ->
     Acc ++ "\n" ++ string:to_lower(Param) ++ ":" ++ Value.
 

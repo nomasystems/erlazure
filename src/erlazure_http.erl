@@ -57,7 +57,9 @@ construct_url(ReqContext = #req_context{}) ->
             Acc =:= "" ->
                 lists:concat(["?", uri_string:quote(ParamName), "=", uri_string:quote(ParamValue)]);
             true ->
-                lists:concat([Acc, "&", uri_string:quote(ParamName), "=", uri_string:quote(ParamValue)])
+                lists:concat([
+                    Acc, "&", uri_string:quote(ParamName), "=", uri_string:quote(ParamValue)
+                ])
         end
     end,
 
