@@ -38,15 +38,11 @@
 -export([parse_table_list/1]).
 
 parse_table_list(TableListResponse) when is_binary(TableListResponse) ->
-        [_, {<<"value">>, List}] = jsx:decode(TableListResponse),
-        Fun = fun(TabItemJson, Acc) -> [parse_table(TabItemJson) | Acc] end,
-        lists:foldl(Fun, [], List).
+    #{<<"value">> := List} = njson:decode(TableListResponse),
+    Fun = fun(TabItemJson, Acc) -> [parse_table(TabItemJson) | Acc] end,
+    lists:foldl(Fun, [], List).
 
-parse_table(TableJson) ->
-        Fun = fun({Prop, Value}, CloudTable=#cloud_table{}) ->
-                case Prop of
-                  <<"TableName">> -> CloudTable#cloud_table { name = Value };
-                  _ -> CloudTable
-                end
-              end,
-        lists:foldl(Fun, #cloud_table{}, TableJson).
+parse_table(#{<<"TableName">> := TableName}) ->
+    #cloud_table{name = TableName};
+parse_table(#{}) ->
+    #cloud_table{}.
