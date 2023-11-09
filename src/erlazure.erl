@@ -746,24 +746,33 @@ execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}
             Code >= 200, Code =< 206
         ->
             {Code, Body};
-        {ok, {{_, _, _}, _, Body}} ->
-            try get_error_code(Body) of
-                ErrorCodeAtom -> {error, ErrorCodeAtom}
-            catch
-                _ -> {error, Body}
+        {ok, {{_, _, _}, ResponseHeaders, Body}} ->
+            case proplists:get_value("content-type", ResponseHeaders, undefined) of
+                undefined ->
+                    {error, content_type_not_present};
+                "application/xml" ->
+                    get_error_code(Body);
+                _ ->
+                    {error, non_xml_response}
             end;
         {error, Reason} ->
             {error, Reason}
     end.
 
 get_error_code(Body) ->
-    {ParseResult, _} = xmerl_scan:string(binary_to_list(Body)),
-    ErrorContent = ParseResult#xmlElement.content,
-    ErrorContentHead = hd(ErrorContent),
-    CodeContent = ErrorContentHead#xmlElement.content,
-    CodeContentHead = hd(CodeContent),
-    ErrorCodeText = CodeContentHead#xmlText.value,
-    list_to_atom(ErrorCodeText).
+    try
+        {ParseResult, _} = xmerl_scan:string(binary_to_list(Body)),
+        ErrorContent = ParseResult#xmlElement.content,
+        ErrorContentHead = hd(ErrorContent),
+        CodeContent = ErrorContentHead#xmlElement.content,
+        CodeContentHead = hd(CodeContent),
+        ErrorCodeText = CodeContentHead#xmlText.value,
+        {error, list_to_atom(ErrorCodeText)}
+    catch
+        _:_ ->
+            {error, Body}
+    end.
+
 
 get_shared_key(Service, Account, Key, HttpMethod, Path, Parameters, Headers) ->
     SignatureString = get_signature_string(Service, HttpMethod, Headers, Account, Path, Parameters),
