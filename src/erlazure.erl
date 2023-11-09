@@ -751,7 +751,9 @@ execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}
                 ErrorCodeAtom -> {error, ErrorCodeAtom}
             catch
                 _ -> {error, Body}
-            end
+            end;
+        {error, Reason} ->
+            {error, Reason}
     end.
 
 get_error_code(Body) ->
