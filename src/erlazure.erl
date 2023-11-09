@@ -753,7 +753,7 @@ execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}
                 "application/xml" ->
                     get_error_code(Body);
                 _ ->
-                    {error, non_xml_response}
+                    {error, {non_xml_response, Body}}
             end;
         {error, Reason} ->
             {error, Reason}
