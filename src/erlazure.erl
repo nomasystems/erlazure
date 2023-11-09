@@ -773,7 +773,6 @@ get_error_code(Body) ->
             {error, Body}
     end.
 
-
 get_shared_key(Service, Account, Key, HttpMethod, Path, Parameters, Headers) ->
     SignatureString = get_signature_string(Service, HttpMethod, Headers, Account, Path, Parameters),
     "SharedKey " ++ Account ++ ":" ++ base64:encode_to_string(sign_string(Key, SignatureString)).
