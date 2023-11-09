@@ -749,7 +749,7 @@ execute_request(ServiceContext = #service_context{}, ReqContext = #req_context{}
         {ok, {{_, _, _}, ResponseHeaders, Body}} ->
             case proplists:get_value("content-type", ResponseHeaders, undefined) of
                 undefined ->
-                    {error, content_type_not_present};
+                    {error, {content_type_not_present, Body}};
                 "application/xml" ->
                     get_error_code(Body);
                 _ ->
