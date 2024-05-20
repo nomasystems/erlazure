@@ -38,7 +38,7 @@
 -export([parse_table_list/1]).
 
 parse_table_list(TableListResponse) when is_binary(TableListResponse) ->
-    #{<<"value">> := List} = njson:decode(TableListResponse),
+    {ok, #{<<"value">> := List}} = njson:decode(TableListResponse),
     Fun = fun(TabItemJson, Acc) -> [parse_table(TabItemJson) | Acc] end,
     lists:foldl(Fun, [], List).
 
