@@ -638,10 +638,11 @@ new_table(Pid, TableName) when is_list(TableName) ->
 new_table(Pid, TableName) when is_binary(TableName) ->
     {Account, Key, ParamSpecs} = gen_server:call(Pid, state),
     ServiceContext = new_service_context(?table_service, Account, Key),
+    {ok, ReqBody} = njson:encode(#{<<"TableName">> => TableName}),
     ReqOptions = [
         {path, "Tables"},
         {method, post},
-        {body, njson:encode(#{<<"TableName">> => TableName})}
+        {body, ReqBody}
     ],
     ReqContext = new_req_context(?table_service, Account, ParamSpecs, ReqOptions),
     ReqContext1 = ReqContext#req_context{content_type = ?json_content_type},

@@ -1,0 +1,4 @@
+[{<<"njson">>,
+  {git,"git@github.com:nomasystems/njson.git",
+       {ref,"94c586b92a7e24c403089cdbe2994b7e7c87b9cc"}},
+  0}].
